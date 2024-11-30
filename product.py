@@ -1,4 +1,5 @@
 from database import Database
+from colorama import Fore
 
 
 class Product:
@@ -9,10 +10,18 @@ class Product:
         self.product_id = product_id
 
     def __str__(self):
+        qnt = ""
+        if self.quantity == 0:
+            qnt = f"{Fore.RED}{str(self.quantity).center(10)}"
+        elif 3 >= self.quantity >= 1:
+            qnt = f"{Fore.YELLOW}{str(self.quantity).center(10)}"
+        else:
+            qnt = f"{Fore.GREEN}{str(self.quantity).center(10)}"
+
         return f"{str(self.product_id).center(10)}" \
                f"{self.name.center(10)}" \
-               f"{str(self.price).center(10)}" \
-               f"{str(self.quantity).center(10)}"
+               f"{str(self.price).center(10)}"\
+               f"{qnt}"
 
     @staticmethod
     def create_table_of_products():
@@ -52,6 +61,18 @@ class Product:
                            (product_price, product_name))
 
     @staticmethod
+    def update_product_quantity_by_id(product_qnt, product_id):
+        with Database() as cursor:
+            cursor.execute("UPDATE products SET quantity = ? WHERE id = ?",
+                           (product_qnt, product_id))
+
+    @staticmethod
+    def update_product_quantity_by_name(product_qnt, product_name):
+        with Database() as cursor:
+            cursor.execute("UPDATE products SET quantity = ? WHERE name = ?",
+                           (product_qnt, product_name))
+
+    @staticmethod
     def remove_product_by_name_from_db(product_name):
         with Database() as cursor:
             cursor.execute("DELETE FROM products WHERE name = ?",
@@ -70,13 +91,11 @@ class Product:
                            (product_quantity, product_name))
 
     @staticmethod
-    def update_products_from_db():
+    def load_products_from_db():
         with Database() as cursor:
             cursor.execute("SELECT * FROM products")
             products = cursor.fetchall()
             return products
-
-
 
     # def __init__(self, name, description, quantity, price, category, product_id=None):
     #     self.product_id = product_id
@@ -85,6 +104,3 @@ class Product:
     #     self.quantity = quantity
     #     self.price = price
     #     self.category = category
-
-
-

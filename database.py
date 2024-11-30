@@ -18,3 +18,5 @@ class Database:
             self.connection.commit()
             self.cursor.close()
             self.connection.close()
+
+
