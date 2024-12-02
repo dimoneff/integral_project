@@ -3,7 +3,8 @@ from colorama import Fore, init
 
 
 class Application:
-    def __init__(self):
+    def __init__(self, currency):
+        self.currency = currency
         self.products = []
         init(autoreset=True)
         self.create_table_if_not_exists()
@@ -12,6 +13,8 @@ class Application:
     @staticmethod
     def create_table_if_not_exists():
         Product.create_table_of_products()
+        # preload initial data to the table, uncomment if the table is empty
+        # Product.load_initial_data()
 
     def run(self):
         flag = True
@@ -76,13 +79,11 @@ class Application:
             Product.update_existing_product(quantity, product_name)
             print(f"{Fore.GREEN}The quantity of the product {product_name.capitalize()} successfully updated.")
         else:
-            # description = input("Enter a product description: ")
-            # quantity = self.input_product_qnt()
-            # price = self.input_product_price()
-            # category = input("Enter a product category: ")
+            description = self.input_product_description()
+            category = self.input_product_category()
             price = self.input_product_price()
             quantity = self.input_product_qnt()
-            Product.add_new_product_to_db(product_name, quantity, price)
+            Product.add_new_product_to_db(product_name, description, category, quantity, price)
             print(f"{Fore.GREEN}New product {product_name.capitalize()} successfully added.")
 
     # Clears and updates the product list from the database
@@ -90,7 +91,12 @@ class Application:
         self.products.clear()
         products = Product.load_products_from_db()
         for product in products:
-            self.products.append(Product(product[1], product[2], product[3], product[0]))
+            self.products.append(Product(product[1],
+                                         product[2],
+                                         product[3],
+                                         product[4],
+                                         product[5],
+                                         product[0]))
 
     # Prints the products in the console
     def show_products(self):
@@ -135,7 +141,7 @@ class Application:
             case "3":
                 self.search_by_qnt()
             case "4":
-                pass
+                self.search_by_category()
             case "5":
                 self.search_by_price()
 
@@ -157,6 +163,16 @@ class Application:
         else:
             print(f"{Fore.RED}Product not found.")
 
+    def search_by_category(self):
+        product_category = self.input_product_category()
+        found_products = list(filter(lambda product: product.category == product_category, self.products))
+        if found_products:
+            self.print_list_header()
+            for item in found_products:
+                print(item)
+        else:
+            print(f"{Fore.RED}Category not found.")
+
     def search_by_qnt(self):
         qnt = self.input_product_qnt()
         found_products = list(filter(lambda product: product.quantity >= qnt, self.products))
@@ -174,13 +190,13 @@ class Application:
 
     def search_by_price(self):
         price = self.input_product_price()
-        found_products = list(filter(lambda product: product.price >= price, self.products))
+        found_products = list(filter(lambda product: product.price <= price, self.products))
         found_qnt = len(found_products)
         if found_products:
             if found_qnt != 1:
-                print(f"{Fore.GREEN}Found {found_qnt} products with a price greater or equal to {price}.")
+                print(f"{Fore.GREEN}Found {found_qnt} products with a price less or equal to {price}.")
             else:
-                print(f"{Fore.GREEN}Found {found_qnt} product with a price greater or equal to {price}.")
+                print(f"{Fore.GREEN}Found {found_qnt} product with a price less or equal to {price}.")
             self.print_list_header()
             for item in found_products:
                 print(item)
@@ -188,24 +204,24 @@ class Application:
             print(f"{Fore.RED}Nothing found.")
 
     def sell_product(self):
-        print("Starting to sell...")
-        product_name = self.input_product_name()
-        existing_product = self.product_exists(product_name)
-        if existing_product:
-            qnt = self.input_product_qnt()
-            if existing_product.quantity - qnt >= 0:
-                print(f"{Fore.GREEN}Amount to pay: {qnt * existing_product.price} "
-                      f"dollars for {qnt} units of {existing_product.name}.")
-                if qnt != 1:
-                    print(f"{Fore.GREEN}{qnt} units of {existing_product.name} have been sold.")
-                else:
-                    print(f"{Fore.GREEN}{qnt} unit of {existing_product.name} has been sold.")
-                existing_product.quantity -= qnt
+        print("""
+        1. To sell the product by id press 1
+        2. To sell the product by name press 2
+        """)
+        choice = input("Selling the product by option: ")
+        match choice:
+            case "1":
+                product_id = self.input_product_id()
+                existing_product = self.product_exists_by_id(product_id)
+                self.sales_report(existing_product)
+                Product.sell_product_by_id(existing_product.quantity, product_id)
+            case "2":
+                product_name = self.input_product_name()
+                existing_product = self.product_exists(product_name)
+                self.sales_report(existing_product)
                 Product.sell_product_by_name(existing_product.quantity, product_name)
-            else:
-                print(f"{Fore.RED}Not sufficient amount of product, try a lesser quantity.")
-        else:
-            print(f"{Fore.RED}There is no {product_name}.")
+            case _:
+                print(f"{Fore.RED}Invalid option.")
 
     # Removes a product by its id or name
     def remove_product(self):
@@ -295,6 +311,20 @@ class Application:
             case _:
                 print(f"{Fore.RED}Invalid option.")
 
+    def sales_report(self, existing_product):
+        if existing_product:
+            qnt = self.input_product_qnt()
+            if existing_product.quantity - qnt >= 0:
+                print(f"{Fore.GREEN}Amount to pay: {qnt * existing_product.price} "
+                      f"{self.currency} for {qnt} units of {existing_product.name}.")
+                if qnt != 1:
+                    print(f"{Fore.GREEN}{qnt} units of {existing_product.name} have been sold.")
+                else:
+                    print(f"{Fore.GREEN}{qnt} unit of {existing_product.name} has been sold.")
+                existing_product.quantity -= qnt
+            else:
+                print(f"{Fore.RED}Not sufficient amount of product, try a lesser quantity.")
+
     def low_stock_report(self):
         self.update_product_list()
         quantity = self.input_product_qnt()
@@ -316,6 +346,24 @@ class Application:
                 return name
             else:
                 print(f"{Fore.RED}You didn't enter a product name.")
+
+    @staticmethod
+    def input_product_description():
+        while True:
+            name = input("Enter a product description: ").strip().lower()
+            if name:
+                return name
+            else:
+                print(f"{Fore.RED}You didn't enter a product description.")
+
+    @staticmethod
+    def input_product_category():
+        while True:
+            name = input("Enter a product category: ").strip().lower()
+            if name:
+                return name
+            else:
+                print(f"{Fore.RED}You didn't enter a product category.")
 
     @staticmethod
     def input_product_price():
@@ -350,8 +398,14 @@ class Application:
     # Prints the headline
     @staticmethod
     def print_list_header():
-        print(f"{Fore.MAGENTA}{'Id'.center(10)}{'Name'.center(10)}{'Price'.center(10)}{'Quantity'.center(10)}")
+        print(f"{Fore.MAGENTA}"
+              f"{'Id'.center(10)}"
+              f"{'Name'.center(25)}"
+              f"{'Description'.center(25)}"
+              f"{'Category'.center(25)}"
+              f"{'Price'.center(10)}"
+              f"{'Quantity'.center(10)}")
 
 
 if __name__ == "__main__":
-    Application()
+    Application("dollars")
