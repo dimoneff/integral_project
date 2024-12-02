@@ -179,9 +179,9 @@ class Application:
         if found_products:
             found_qnt = len(found_products)
             if found_qnt != 1:
-                print(f"{Fore.GREEN}Found {len(found_products)} products with quantity greater or equal to {qnt}.")
+                print(f"{Fore.GREEN}Found {len(found_products)} products with quantity more or equal to {qnt}.")
             else:
-                print(f"{Fore.GREEN}Found {len(found_products)} product with quantity greater or equal to {qnt}.")
+                print(f"{Fore.GREEN}Found {len(found_products)} product with quantity more or equal to {qnt}.")
             self.print_list_header()
             for item in found_products:
                 print(item)

@@ -30,12 +30,12 @@ class Product:
     def create_table_of_products():
         with Database() as cursor:
             cursor.execute("CREATE TABLE IF NOT EXISTS products "
-                           "(id integer primary key, "
-                           "name text, "
-                           "description text, "
-                           "category text, "
-                           "quantity integer, "
-                           "price real)")
+                           "(id INTEGER PRIMARY KEY, "
+                           "name TEXT NOT NULL, "
+                           "description TEXT NOT NULL, "
+                           "category text NOT NULL, "
+                           "quantity INTEGER NOT NULL, "
+                           "price REAL NOT NULL)")
 
     @staticmethod
     def load_initial_data():
